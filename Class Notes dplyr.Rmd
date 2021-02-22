@@ -1,0 +1,170 @@
+---
+title: "Class Notes dplyr"
+author: "Holly Westbrook"
+date: "2/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.asp = 0.618, collapse=TRUE) 
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+```
+
+
+installed these packages: tidyverse and palmerpenguins
+
+```{r}
+library("tidyverse")
+tidyverse_packages()
+
+library("palmerpenguins")
+
+```
+
+We'll be using dplyr today, d = data, plyr like pliers aka you're using tools to mess w/ your data
+
+
+```{r}
+head(penguins)
+glimpse(penguins) #essentially the tidyverse version of head(), can show you a bit more data
+
+summary(penguins)
+dim(penguins)
+
+class(penguins) #data that's been through the tidyverse is classed as a tbl (tibble)
+
+```
+
+
+dplyr makes code a bit more like english, functions have basic verb names that make sense for what they are doing to the data, things like filter(), rename(), group_by(), etc
+
+
+```{r}
+#the first parameter of all dplyr functions are the data you want to work with 
+ladies = filter(penguins, sex == "female")
+ladies
+
+
+gentoo_ladies = filter(ladies, species == "Gentoo")
+gentoo_ladies
+
+```
+
+The pipe allows you to string functions together
+
+```{r}
+# %>% the pipe
+
+gentoo_ladies = penguins %>% filter(sex == "female", species == "Gentoo")
+#read the pipe as "then", so this would be, filter females THEN filter Gentoo
+#this way we don't have to use te filter function twice
+
+#spacing
+gentoo_ladies = penguins %>% #use a carriage return after each pipe to make it more readable
+  filter(sex == "female", #same thing when filtering multiple variables
+         species == "Gentoo") %>%
+
+#even though this code is several rows, if you have your cursor on the code and hit ctrl+enter it will still run the entire code
+
+summarize(mean_body_mass_g = mean(body_mass_g))
+
+gentoo_ladies
+
+```
+
+Compare to base R
+
+```{r}
+
+female_penguins  = penguins[which(penguins$sex == "female"),]
+
+gentoo_ladies = female_penguins[which(female_penguins$species =="Gentoo"),]
+
+mean(gentoo_ladies$body_mass_g)
+#much easier to use dplyr for this as there are less nested brackets, less which statements, and the function names are easier to grasp
+
+```
+
+Exercise 1.1
+
+Build a data set that contains only Chinstrap penguins with a flipper length > 200 mm. What is the percentage of females in that subset of data? How does that compare to the percentage of all female Chinstrap penguins included in the original data set? Use the `summary()` function to compare the sex ratio of the full Chinstrap dataset vs. the subset of Chinstrap penguins with a flipper length > 200 mm. Or you can use again subset the data by sex and use the `dim()` function to count the number of rows in the subsetted data. Given this analysis, what do you think the relationship is between sex and flipper length?
+
+```{r}
+chin = penguins %>% filter(species == "Chinstrap", flipper_length_mm > 200)
+
+summary(penguins)
+summary(chin)
+
+
+```
+
+It looks like males have longer flippers!
+
+```{r}
+penguins_masses = penguins %>% 
+  filter(!is.na(sex)) %>%
+  group_by(species, sex) %>% 
+  summarize(mean_body_mass_g = mean(body_mass_g, na.rm=TRUE)) #ignore NAs or it will mess up the function
+
+penguins_masses
+
+
+#### write csv using base R ####
+write.csv(penguins_masses, 'data/processed/pengiuns_masses.csv')
+#often after you're done this you would make it into a comment so that if you re ran the code you wouldn't accidentally overwrite your file
+#so it'd be like this 
+#write.csv(penguins_masses, 'data/processed/pengiuns_masses.csv')
+
+```
+
+More dplyr functions
+
+```{r}
+num_species_by_island = penguins %>% 
+  group_by(species, island) %>% 
+  summarize(num = n())
+
+num_species_by_island
+
+```
+
+Chinstrap species were only found on Dream Island, Gentoo only on Biscoe, but Adelie was on Bisco, Dream, and Torgersen
+
+
+```{r}
+#mutate
+penguins_for_americans = penguins %>% 
+  mutate(body_mass_lb =body_mass_g * 0.0022) # 0.0022 lb/g
+
+penguins_for_americans
+
+head(penguins_for_americans)
+
+#distinct()
+#can be used to remove duplicates from data, but we don't really have duplictes in this data set
+
+#select() 
+#to look at just the columns you care about
+penguins %>% 
+  select(species, sex)
+
+penguins %>% 
+  select(-bill_length_mm, bill_depth_mm)
+
+#arrange() 
+#sorts things
+
+penguins %>% 
+  arrange(body_mass_g)
+
+penguins %>% 
+  arrange(rev(body_mass_g))
+
+```
+
+
+
+
+
+
+
