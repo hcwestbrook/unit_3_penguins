@@ -23,4 +23,121 @@ find("filter") #first one listed is the default
 
 library(palmerpenguins)
 
+head(penguins)
+#if we want to use the version of a function from a specific package you can call it like so
+penguins %>% dplyr::filter(species == "Adelie")
+
+##############################
+#             Scatter Plot
+##############################
+ggplot() +
+  geom_point(aes(x= flipper_length_mm, y = body_mass_g, color = species, size = bill_length_mm), data = penguins)
+            #things inside the aes function can be mapped to data in your data frame, if you want them constant you can put them outside aes
+ggplot(data = penguins) + #called the data in ggplot() so that the geom_smooth() function knows to use data from penguins
+  geom_point(aes(x= flipper_length_mm, y = body_mass_g, color = species, size = bill_length_mm), data = penguins)+
+  geom_smooth(aes(x=flipper_length_mm, y = body_mass_g))
+
+#we can make this even neater looking by calling the x and y in ggplot(), this will set the default x + y for all next functions
+ggplot(aes(x= flipper_length_mm, y = body_mass_g), data = penguins) + #
+  geom_point(aes(color = species))+
+  geom_smooth(method = "lm")+
+  ylab("Body mass (g)")+
+  xlab("Flipper length (mm)")+
+  ggtitle("Penguins Are Cute")+
+  theme_classic() #there are a lot of different themes, you can manually control all the aesthetic features but it's easy to use the premade themes
+
 ```
+
+There are also packages that work with ggplot that you can find onnline
+
+
+Exercise 2.1
+
+Build a scatter plot of bill depth vs. bill length for Adelie penguins. Map the point colors to the island that the Adelie penguin was observed on. Add axes labels and a main title. 
+
+```{r}
+adelie = penguins %>% filter(species == "Adelie")
+head(adelie)
+ggplot(aes(x = bill_depth_mm, y = bill_length_mm),data= adelie)+
+  geom_point(aes(color = island))+
+  xlab("Bill Depth (mm)")+
+  ylab("Bill Length (mm)")+
+  ggtitle("Adelie Penguins")
+
+```
+
+Let's make a penguin time series to see how it has changed over time
+
+```{r}
+penguin_ts = penguins %>%
+  group_by(species, year) %>% 
+  summarize(num=n())
+penguin_ts
+
+ggplot(aes(x=year, y=num, color = species), data = penguin_ts)+
+  geom_point()+
+  geom_line()
+
+```
+
+Real Histogram Hours
+
+
+```{r}
+############################
+#     Histograms
+############################
+
+ggplot(data=penguins) +
+  geom_histogram((aes(x=flipper_length_mm, fill = species))) #use fill instead of color for histograms, color will just make an outline
+
+
+#we can also make them ont stacked by setting position and alpha (transparency parameter)
+ggplot(data=penguins) +
+  geom_histogram((aes(x=flipper_length_mm, fill = species)), position = "identity", alpha = 0.5, binwidth=5)+
+  scale_fill_manual (values=c("darkorange", "darkorchid", "darkcyan"))
+
+```
+
+Here are the colors you can use in r!
+http://applied-r.com/r-color-tables/ 
+
+Box plot time
+
+```{r}
+ggplot(aes(y=flipper_length_mm, x = species), data=penguins)+
+  geom_boxplot()+
+  geom_jitter(aes(color=species))
+
+##################
+#     Bar Plot
+##################
+
+
+ggplot(data=penguins)+
+  geom_bar(aes(x=sex, fill = species))+
+  facet_wrap(~species) #create a different panel for whatever variable you choose
+
+my_plot = ggplot(data=penguins %>% filter(!is.na(sex)))+ #getting rid of NAs
+  geom_bar(aes(x=sex, fill = species))+
+  coord_flip()+ #to make bars horizontal instead of vertical, it looks bad in this
+  facet_wrap(~species, ncol=1) #ncol= number of columns, this makes the plot look less bad lol
+  ggsave(filename = "figures/penguin_sex_bar.png", device = "png", width=6, height = 4, dpi = 300, units = "in")
+  #setting device isn't necessary bc we already added .png to the file name
+my_plot
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
