@@ -1,0 +1,26 @@
+---
+title: "Class Notes ggplot"
+author: "Holly Westbrook"
+date: "2/24/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+The conflicts that pop up mean there is masking, which means that some of the funtions in the tidyverse already have the same name as functions in base R
+The most recent thing that has been loaded is the version of the function that will be used
+You can know which function you're using with the find function
+
+```{r}
+find("filter") #first one listed is the default 
+
+library(palmerpenguins)
+
+```
