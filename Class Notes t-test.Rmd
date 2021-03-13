@@ -1,0 +1,272 @@
+---
+title: "Class Notes t-tests"
+author: "Holly Westbrook"
+date: "3/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+library(rstatix)
+```
+########## t-test ########## 
+one sample t test: compare distribution to a theoretical mean
+
+Paired sample t test: compare 2 distributions to each other (also called independent t-test)
+
+```{r}
+### One sample t-test
+# gentoo
+
+gentoo = penguins %>% 
+  filter(species == "Gentoo")
+
+ggplot(data=gentoo)+
+  geom_histogram(aes(x=body_mass_g))
+#distribution looks normal
+
+summary(gentoo)
+
+## t-test for gentoo body mass
+#start by doing some data exploration before you try to run statistics
+mean(gentoo$body_mass_g, na.rm = TRUE)
+
+sd(gentoo$body_mass_g, na.rm = TRUE)
+
+```
+
+t-test assumptions:
+1. no outliers
+  if there are, why are they there
+2. Check for normal distribution
+
+```{r}
+# test for ouliers
+gentoo %>% 
+    identify_outliers(body_mass_g)
+
+#no outliers found!
+# you can also look at the histogram and see if anything is sticking plot
+```
+Q-Q plots are also used, they line up data and plot them against a normal distribution
+It should be a straight line, it may get weird towards the end but as long as it's not too dramatic it's fine
+
+```{r}
+# Q-Q plot
+ggplot(data=gentoo)+
+  stat_qq(aes(sample=body_mass_g))
+
+```
+
+Now we'll do a one sample t-test
+We'll take the average body mass from the encyclopedia of life
+
+```{r}
+t.test(gentoo$body_mass_g, mu = 5500)
+# mu is the theoretical mean, 5500 is from the encyclopedia of life
+```
+Calculates:
+  the mean
+  p-value (low p-value indicates significance)
+
+You can also do this in dplyr
+
+```{r}
+gentoo %>% 
+  t_test(body_mass_g~1, mu = 5500) #~1 indicates 1 sample t-test
+
+#you can save this to a variable, and then make a data frame if you need to repeat this function
+
+gentoo_results = gentoo %>% 
+  t_test(body_mass_g~1, mu = 5500)
+
+```
+
+######### Unpaired 2 sample t-test aka "independent sample t-test ##############
+
+```{r}
+# gentoo vs adelie body mass
+data_for_t_test = penguins %>% 
+  filter(species %in% c("Gentoo", "Adelie"),
+         !is.na(body_mass_g)) %>% #filters out NAs
+  select(species, body_mass_g) %>%  #gets rid of data columns we won't be using
+  droplevels() #for any factor variable in the data set it will get rid of any level that has zero rows in it
+#levels are like different subcategories in a column. So for species our original levels were Adelie, Gentoo, and Chinstrap  
+```
+
+Now we calculate summary statistics 
+```{r}
+data_for_t_test %>% 
+  summarise(mean = mean(body_mass_g),
+            sd = sd(body_mass_g))
+
+#but we want it separate for each species so:
+
+data_for_t_test %>%
+  group_by(species) %>% #groups by species. shocking. i know
+  summarise(mean = mean(body_mass_g),
+            sd = sd(body_mass_g))
+
+ggplot(data = data_for_t_test)+
+  geom_histogram(aes(x=body_mass_g))+
+  facet_wrap(~species) #~ indicates you're usinga formula, facet wrap will create separate panels based on what you "wrap" it around. So in this case we're wraping it around the species level
+  #Facet wrap will automatically make the scales on the panels the same by default, we can rescale it like so
+
+ggplot(data = data_for_t_test)+
+  geom_histogram(aes(x=body_mass_g))+
+  facet_wrap(~species, scales = "free")
+
+
+```
+
+Identify outliers now and make Q-Q plots
+
+
+```{r}
+data_for_t_test %>% 
+  group_by(species) %>% 
+  identify_outliers(body_mass_g)
+
+
+ggplot(data = data_for_t_test)+
+  stat_qq(aes(sample = body_mass_g))
+#tails are a bit like an S, but let's separate the species 
+
+ggplot(data = data_for_t_test)+
+  stat_qq(aes(sample = body_mass_g))+
+  facet_wrap(~species, scales = "free")
+#these look pretty normal now
+```
+
+Because we're comparing two distributions, we should check to see if the variances between the two datasets are similar. 
+If variance is equal -> students t.test
+If variance is not equal -> Welch's t.test
+use a levene test for this (null value = variances equal)
+
+```{r}
+data_for_t_test %>% 
+  levene_test(body_mass_g ~ species) #comparing the body mass distribution for each factor in the species column
+
+```
+
+This passed the levene test, bc p>0.5 which means the variances are the same
+
+Now we can finally run our unpaired 2 sample t-test
+
+```{r}
+t.test(data_for_t_test$body_mass_g ~data_for_t_test$species)
+
+```
+
+p-value is super small so the Gentoo & Adelie body masses are significantly different from each other
+This is a Welch's t-test, but because we know our variences are qual we can run a student's t-test instead
+The default is the Welch's t-test because it assumes you're lazy and didn't check all the above shit
+
+```{r}
+
+t.test(data_for_t_test$body_mass_g ~data_for_t_test$species, var.equal = TRUE)
+
+#try it in dplyr
+
+data_for_t_test %>% 
+  t_test(body_mass_g ~ species)
+
+```
+
+A Paired t-test is good for when you are re-runing samples after some sort of treatment (or maybe just re-analyzing data) and want to see if it changed significantly
+
+
+
+### Exercise 3.1
+
+Are Adelie penguin flipper lengths significantly different between males and females? Do some exploratory data analysis. Compute summary statistics and plot histograms. Then conduct an independent sample t-test. What do your results show?
+
+```{r}
+head(penguins)
+ 
+ex3 = penguins %>% 
+  filter(species == "Adelie",
+         !is.na(flipper_length_mm),
+         !is.na(sex)) %>% 
+  select(sex, flipper_length_mm) %>%  
+  droplevels()
+
+ex3
+
+ex3 %>% 
+  group_by(sex) %>% 
+  identify_outliers(flipper_length_mm)
+
+ex3 %>%
+  group_by(sex) %>% #groups by species. shocking. i know
+  summarise(mean = mean(flipper_length_mm),
+            sd = sd(flipper_length_mm))
+ex3
+ggplot(data = ex3)+
+  geom_histogram(aes(x=flipper_length_mm))+
+  facet_wrap(~sex, scale = "free")
+
+
+ggplot(data = ex3)+
+  stat_qq(aes(sample = flipper_length_mm))+
+  facet_wrap(~sex, scales = "free")
+#this looks funky? there are outliers but because our n is high enough the central limit theory says it's okay?
+
+ex3 %>% 
+  t_test(flipper_length_mm~sex)
+
+
+```
+
+
+###### Correlation ######
+
+```{r}
+
+ggplot(data=gentoo) +
+  geom_point(aes(x=bill_length_mm, y = bill_depth_mm))
+
+# correlation
+
+cor.test(x = gentoo$bill_length_mm, y =gentoo$bill_depth_mm) #if NAs are causing an error add in this term
+cor.test(x = gentoo$bill_length_mm, y =gentoo$bill_depth_mm, use="complete.obs")
+
+#also you can do this to just get the corelation value
+cor(x = gentoo$bill_length_mm, y =gentoo$bill_depth_mm, use="complete.obs")
+
+#easy to run correlation on multiple columns in a dataset w/ cor
+head(gentoo)
+#want all rows and columns 3:6
+cor(gentoo[,3:6], use="complete.obs")
+
+
+
+
+```
+
+^This is a correlation matrix, which is hella neat
+
+
+
+```{r}
+#get a fuck ton of stats fast with the ggpairs function in GGally
+library(GGally)
+gentoo %>%  
+  select(bill_length_mm, bill_depth_mm, body_mass_g, flipper_length_mm) %>% 
+  ggpairs()
+
+#gives you correlation values, histograms, and plots
+
+
+#we can even look at all the species is we color map it
+penguins %>%  
+  select(species, bill_length_mm, bill_depth_mm, body_mass_g, flipper_length_mm) %>% 
+  ggpairs(aes(color=species))
+
+
+```

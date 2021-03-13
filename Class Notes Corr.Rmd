@@ -1,0 +1,38 @@
+---
+title: "Class Notes Correlation"
+author: "Holly Westbrook"
+date: "3/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+
+
+```
+
+
+3/10/21
+
+```{r}
+penguins_lm_3 = penguins %>% 
+  filter(!is.na(bill_depth_mm),
+         !is.na(bill_length_mm),
+         !is.na(sex))
+
+lm_3 = lm(bill_depth_mm ~bill_length_mm + species, data = penguins_lm_3)
+summary(lm_3)
+
+# ad an interaction term
+lm_4 = lm(bill_depth_mm ~ bill_length_mm*species, data = penguins_lm_3 )
+# lm_4 = lm(bill_depth_mm ~ bill_length_mm +6 species + bill_length_mm*species, data = penguins_lm_3)
+summary(lm_4)
+
+
+```
